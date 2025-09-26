@@ -2,6 +2,11 @@ import json
 import requests
 from docx import Document
 from tkinter import Tk, filedialog
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+WEBAPP_URL = os.getenv("WEBAPP_URL")
 
 def docx_to_json(path):
     doc = Document(path)
@@ -14,7 +19,7 @@ def docx_to_json(path):
             continue
 
         # Pergunta (começa com número e contém ? ou .)
-        if text[0].isdigit() and ("?" in text or text.endswith(".")):
+        if (text[0].isdigit() and ("?" in text or text.endswith("."))) or text.endswith("?"):
             if question:
                 data.append(question)
             question = {"question": text, "options": [], "type": "multiple_choice"}
@@ -51,14 +56,19 @@ def main():
 
     questions = docx_to_json(file_path)
 
-    # URL do WebApp no Google Apps Script
-    WEBAPP_URL = "COLE_AQUI_A_URL_DO_SEU_WEBAPP"
+    if not WEBAPP_URL:
+        print("❌ ERRO: WEBAPP_URL não encontrado no .env")
+        return
 
     # Enviar JSON para o Apps Script
     response = requests.post(WEBAPP_URL, json=questions)
 
-    print("Resposta do Google Apps Script:", response.text)
-
+    try:
+        data = response.json()
+        print("🔗 Link para editar:", data.get("editUrl"))
+        print("✅ Link para responder:", data.get("publishedUrl"))
+    except Exception:
+        print("Resposta inesperada:", response.text)
 
 if __name__ == "__main__":
     main()
